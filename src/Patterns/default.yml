@@ -1,0 +1,55 @@
+--- # Default parse statements
+
+# Each array of entities can reference those defined in previous arrays.
+entities:
+- delim:            "[:;]"
+  delim2:           "[xx]"
+  delim_neg2:       "[xx]"
+  uuid:             "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+- journal:          "(?P<journal>{delim_neg2}*?)"
+  dailymedsetid:    "(?P<dailmedsetid>{uuid})"
+
+# Each engine can be triggered for a lookup based on which fields are found.
+engines:
+- id:         dailymed
+  class:      \Decite\Search\DailyMed
+  methods:
+  - method:   bySetId
+    score:    90
+    fields:   [dailymedsetid]
+- id:         crossref
+  class:      \Decite\Search\CrossRef
+  methods:
+  - method:   byDoi
+    score:    100
+    fields:   [doi]
+  - method:   byAuthorTitle
+    score:    80
+    fields:   [author,title]
+- id:         pubmed
+  class:      \Decite\Search\PubMed
+  methods:
+  - method:   byPmid
+    score:    100
+    fields:   [pmid]
+  - method:   byPmcid
+    score:    100
+    fields:   [pmcid]
+  - method:   byJournalIssuePages
+    score:    80
+    fields:   [journal,pdate,pages]
+
+# Define patterns that can be extracted before processing.
+extract:
+- match:  "@{cited}@"
+- match:  "@{updated}@"
+- match:  "@{url}@"
+- title:  Garbage collection post-extraction. Remove empty brackets.
+  match:  "@\\s*\\[[\\s;]*\\]@s"
+
+# Define known patterns for references.
+patterns:
+- match:  "@{delim_ext2} {journal}\\.? {date}{delim_ext1} *{vol} *\\({iss}\\)[:;] *{page}\\.$@i"
+  score:  50
+- match:  "@dailymed.nlm.nih.gov/dailymed/lookup.cfm?setid={dailymedsetid}@i"
+  score:  70
